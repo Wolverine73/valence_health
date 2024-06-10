@@ -1,0 +1,1 @@
+"C:\Program Files\SAS\SASFoundation\9.2\sas.exe" -sysin M:\CI\programs\StandardMacros\Patient_Profiler_History_macro_v3.sas -icon -nosplash  -log M:\CI\sasdata\CISubmeasureHistory\Logs\ProfilerHistory.log -print M:\CI\sasdata\CISubmeasureHistory\Logs\ProfilerHistory.lst 
