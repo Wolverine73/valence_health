@@ -1,0 +1,26 @@
+	%macro count_digit_diff(m_varprefix,m_var1,m_var2);
+		if length(&m_var1.) le length(&m_var2.) then do; cdd1_&m_varprefix.=&m_var1.; cdd2_&m_varprefix.=&m_var2.; end;
+		else do; cdd1_&m_varprefix.=&m_var2.; cdd2_&m_varprefix.=&m_var1.; end;
+		&m_varprefix._digit_diff=length(cdd2_&m_varprefix.)-length(cdd1_&m_varprefix.);
+		do m_i=1 to length(cdd1_&m_varprefix.);
+			if substr(cdd1_&m_varprefix.,m_i,1) ne substr(cdd2_&m_varprefix.,m_i,1) then do;
+				if m_i=length(cdd1_&m_varprefix.) then do;
+					&m_varprefix._digit_diff=&m_varprefix._digit_diff+1;
+					&m_varprefix._digit_1stdiff=min(&m_varprefix._digit_1stdiff,m_i);
+				end;
+				else if substr(cdd1_&m_varprefix.,m_i+1)=substr(cdd2_&m_varprefix.,m_i,length(substr(cdd1_&m_varprefix.,m_i+1))) or 
+					substr(cdd2_&m_varprefix.,m_i+1)=substr(cdd1_&m_varprefix.,m_i,length(substr(cdd2_&m_varprefix.,m_i+1))) then do;
+					&m_varprefix._digit_diff=&m_varprefix._digit_diff+1;
+					&m_varprefix._digit_1stdiff=min(&m_varprefix._digit_1stdiff,m_i);
+					m_i=length(cdd1_&m_varprefix.)+1;
+				end;
+				else do;
+					&m_varprefix._digit_diff=&m_varprefix._digit_diff+1;
+					&m_varprefix._digit_1stdiff=min(&m_varprefix._digit_1stdiff,m_i);
+				end;
+			end;
+		end;
+		&m_varprefix._digit_diffpct=&m_varprefix._digit_diff/length(cdd2_&m_varprefix.);
+		cdd1_&m_varprefix.=''; cdd2_&m_varprefix.='';
+		drop m_i cdd1_&m_varprefix. cdd2_&m_varprefix.;
+	%mend count_digit_diff;
