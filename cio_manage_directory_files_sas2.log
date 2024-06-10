@@ -1,0 +1,318 @@
+1                                                          The SAS System                          14:49 Tuesday, September 18, 2012
+
+NOTE: Unable to open SASUSER.REGSTRY. WORK.REGSTRY will be opened instead.
+NOTE: All registry changes will be lost at the end of the session.
+
+WARNING: Unable to copy SASUSER registry to WORK registry. Because of this, you will not see registry customizations during this 
+         session.
+NOTE: Unable to open SASUSER.PROFILE. WORK.PROFILE will be opened instead.
+NOTE: All profile changes will be lost at the end of the session.
+NOTE: Copyright (c) 2002-2008 by SAS Institute Inc., Cary, NC, USA. 
+NOTE: SAS (r) Proprietary Software 9.2 (TS2M3) 
+      Licensed to VALENCE HEALTH, Site 70050061.
+NOTE: This session is executing on the X64_SRV08  platform.
+
+
+
+NOTE: SAS initialization used:
+      real time           0.38 seconds
+      cpu time            0.07 seconds
+      
+1          
+2          options noxwait;
+3          
+4          libname cio "\\sas2\ci\programs\EDW";
+NOTE: Libref CIO was successfully assigned as follows: 
+      Engine:        V9 
+      Physical Name: \\sas2\ci\programs\EDW
+5          
+6          %macro cio_manage_directory_files;
+7          
+8          	data _null_;
+9          	  set cio.cio_directory  end=eof;
+10         	  where environment='SAS2';
+11         	    i+1;
+12         	    ii=left(put(i,4.));
+13         		call symput('dir'||ii,trim(dir));
+14         		call symput('days'||ii,trim(days));
+15         	    if eof then call symput('dir_total',ii);
+16         	run;
+17         	
+18         	%put NOTE: dir_total = &dir_total. ;
+19         
+20         	%do j = 1 %to &dir_total. ;
+21         		
+22         		%let file_directory=&&dir&j. ;
+23         		%let days=&&days&j. ;
+24         		
+25         		%put NOTE: file_directory = &file_directory. ;
+26         		%put NOTE: days = &days. ;
+27         
+28         		data _null_;
+29         		  call symput('sas_dir',"dir  &file_directory.\*.* ");
+30         		run;
+31         
+32         		filename indata pipe "&sas_dir.";
+33         		
+2                                          The SAS System          14:49 Tuesday, September 18, 2012
+
+34         		data file_directory;
+35         		  length filename $50. deletefiles $100.;
+36         		  format date mmddyy10.;
+37         		  infile indata truncover;
+38         		  input File_Extract $100.;
+39         			date2=scan(File_Extract,1,' ');
+40         			date=input(date2,mmddyy10.);
+41         			time=scan(File_Extract,2,' ');
+42         			ampm=scan(File_Extract,3,' ');
+43         			size=compress(scan(File_Extract,4,' '),',')*1;
+44         			filename=scan(File_Extract,5,' ');
+45         			ext=lowcase(scan(filename,2,'.'));
+46         			deletefiles="&file_directory."||"\"||trim(left(filename));
+47         			if index(filename,'.') > 0 and size > 0;
+48         		run;
+49         		
+50         		data file_directory;
+51         		set file_directory;
+52         			if date < today() - &days. ; /**or  ext ne 'sas7bdat';**/
+53         			drop date2 ;
+54         		run;
+55         
+56         		proc sql noprint;
+57         		select count(*) into: file_directory_cnt
+58         		from file_directory;
+59         		quit;
+60         
+61         		%put NOTE: file_directory_cnt = &file_directory_cnt. ;
+62         
+63         		%if &file_directory_cnt. ne 0 %then %do;
+64         
+65         			%put NOTE: Remove &file_directory_cnt files from &file_directory. ;
+66         
+67         			%let deletefiles_total=0;
+68         
+69         			data _null_;
+70         			  set file_directory  end=eof;
+71         			    i+1;
+72         			    ii=left(put(i,4.));
+73         				call symput('deletefiles'||ii,trim(deletefiles));
+74         			    if eof then call symput('deletefiles_total',ii);
+75         			run;
+76         
+77         			%do i = 1 %to &deletefiles_total. ;
+78         			    x "del &&deletefiles&i";
+79         			%end;
+80         
+81         		%end;
+82         
+83         	%end;
+84         
+85         %mend cio_manage_directory_files;
+86         
+87         %cio_manage_directory_files;
+3                                          The SAS System          14:49 Tuesday, September 18, 2012
+
+
+NOTE: Numeric values have been converted to character values at the places given by: 
+      (Line):(Column).
+      87:182   
+NOTE: There were 2 observations read from the data set CIO.CIO_DIRECTORY.
+      WHERE environment='SAS2';
+NOTE: DATA statement used (Total process time):
+      real time           0.07 seconds
+      cpu time            0.03 seconds
+      
+
+NOTE: dir_total = 2
+NOTE: file_directory = F:\SASTEMP\CIStaging\prod
+NOTE: days = 40
+
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      cpu time            0.00 seconds
+      
+
+
+NOTE: Character values have been converted to numeric values at the places given by: 
+      (Line):(Column).
+      87:175   
+NOTE: The infile INDATA is:
+      Unnamed Pipe Access Device,
+      PROCESS=dir  F:\SASTEMP\CIStaging\prod\*.*,
+      RECFM=V,LRECL=256
+
+NOTE: Invalid argument to function INPUT at line 87 column 75.
+NOTE: Invalid numeric data, 'F' , at line 87 column 175.
+RULE:     ----+----1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9
+1          Volume in drive F is SASWORK 29
+filename=is deletefiles=F:\SASTEMP\CIStaging\prod\is date=.
+File_Extract=Volume in drive F is SASWORK date2=Volume time=in ampm=drive size=. ext=  _ERROR_=1
+_N_=1
+NOTE: Invalid argument to function INPUT at line 87 column 75.
+NOTE: Invalid numeric data, 'is' , at line 87 column 175.
+2          Volume Serial Number is 42D0-44FC 34
+filename=42D0-44FC deletefiles=F:\SASTEMP\CIStaging\prod\42D0-44FC date=.
+File_Extract=Volume Serial Number is 42D0-44FC date2=Volume time=Serial ampm=Number size=. ext= 
+_ERROR_=1 _N_=2
+NOTE: Invalid argument to function INPUT at line 87 column 75.
+4          Directory of F:\SASTEMP\CIStaging\prod 39
+filename=  deletefiles=F:\SASTEMP\CIStaging\prod\ date=.
+File_Extract=Directory of F:\SASTEMP\CIStaging\prod date2=Directory time=of
+ampm=F:\SASTEMP\CIStaging\prod size=. ext=  _ERROR_=1 _N_=4
+NOTE: Invalid numeric data, '<DIR>' , at line 87 column 175.
+6         09/18/2012  01:19 PM    <DIR>          . 40
+filename=. deletefiles=F:\SASTEMP\CIStaging\prod\. date=09/18/2012
+File_Extract=09/18/2012  01:19 PM    <DIR>          . date2=09/18/2012 time=01:19 ampm=PM size=.
+ext=  _ERROR_=1 _N_=6
+NOTE: Invalid numeric data, '<DIR>' , at line 87 column 175.
+7         09/18/2012  01:19 PM    <DIR>          .. 41
+4                                          The SAS System          14:49 Tuesday, September 18, 2012
+
+filename=.. deletefiles=F:\SASTEMP\CIStaging\prod\.. date=09/18/2012
+File_Extract=09/18/2012  01:19 PM    <DIR>          .. date2=09/18/2012 time=01:19 ampm=PM size=.
+ext=  _ERROR_=1 _N_=7
+NOTE: Invalid argument to function INPUT at line 87 column 75.
+NOTE: Invalid numeric data, 'bytes' , at line 87 column 175.
+RULE:     ----+----1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9
+1711                  1703 File(s) 63,125,263,207 bytes 45
+filename=  deletefiles=F:\SASTEMP\CIStaging\prod\ date=.
+File_Extract=1703 File(s) 63,125,263,207 bytes date2=1703 time=File(s) ampm=63,125,263,207 size=.
+ext=  _ERROR_=1 _N_=1711
+NOTE: Invalid argument to function INPUT at line 87 column 75.
+NOTE: Invalid numeric data, 'bytes' , at line 87 column 175.
+1712                     2 Dir(s)  1,662,579,900,416 bytes free 53
+filename=free deletefiles=F:\SASTEMP\CIStaging\prod\free date=.
+File_Extract=2 Dir(s)  1,662,579,900,416 bytes free date2=2 time=Dir(s) ampm=1,662,579,900,416
+size=. ext=  _ERROR_=1 _N_=1712
+NOTE: 1712 records were read from the infile INDATA.
+      The minimum record length was 0.
+      The maximum record length was 79.
+NOTE: Missing values were generated as a result of performing an operation on missing values.
+      Each place is given by: (Number of times) at (Line):(Column).
+      9 at 87:213   
+NOTE: Mathematical operations could not be performed at the following places. The results of the 
+      operations have been set to missing values.
+      Each place is given by: (Number of times) at (Line):(Column).
+      5 at 87:75   
+NOTE: The data set WORK.FILE_DIRECTORY has 1695 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.68 seconds
+      cpu time            0.03 seconds
+      
+
+
+NOTE: There were 1695 observations read from the data set WORK.FILE_DIRECTORY.
+NOTE: The data set WORK.FILE_DIRECTORY has 0 observations and 8 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.01 seconds
+      cpu time            0.00 seconds
+      
+
+NOTE: PROCEDURE SQL used (Total process time):
+      real time           0.00 seconds
+      cpu time            0.01 seconds
+      
+
+NOTE: file_directory_cnt =        0
+NOTE: file_directory = F:\SASTEMP\CIStaging\test
+NOTE: days = 40
+
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      cpu time            0.00 seconds
+      
+
+5                                          The SAS System          14:49 Tuesday, September 18, 2012
+
+
+NOTE: Character values have been converted to numeric values at the places given by: 
+      (Line):(Column).
+      87:175   
+NOTE: The infile INDATA is:
+      Unnamed Pipe Access Device,
+      PROCESS=dir  F:\SASTEMP\CIStaging\test\*.*,
+      RECFM=V,LRECL=256
+
+NOTE: Invalid argument to function INPUT at line 87 column 75.
+NOTE: Invalid numeric data, 'F' , at line 87 column 175.
+RULE:     ----+----1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9
+1          Volume in drive F is SASWORK 29
+filename=is deletefiles=F:\SASTEMP\CIStaging\test\is date=.
+File_Extract=Volume in drive F is SASWORK date2=Volume time=in ampm=drive size=. ext=  _ERROR_=1
+_N_=1
+NOTE: Invalid argument to function INPUT at line 87 column 75.
+NOTE: Invalid numeric data, 'is' , at line 87 column 175.
+2          Volume Serial Number is 42D0-44FC 34
+filename=42D0-44FC deletefiles=F:\SASTEMP\CIStaging\test\42D0-44FC date=.
+File_Extract=Volume Serial Number is 42D0-44FC date2=Volume time=Serial ampm=Number size=. ext= 
+_ERROR_=1 _N_=2
+NOTE: Invalid argument to function INPUT at line 87 column 75.
+4          Directory of F:\SASTEMP\CIStaging\test 39
+filename=  deletefiles=F:\SASTEMP\CIStaging\test\ date=.
+File_Extract=Directory of F:\SASTEMP\CIStaging\test date2=Directory time=of
+ampm=F:\SASTEMP\CIStaging\test size=. ext=  _ERROR_=1 _N_=4
+NOTE: Invalid numeric data, '<DIR>' , at line 87 column 175.
+6         09/18/2012  01:49 PM    <DIR>          . 40
+filename=. deletefiles=F:\SASTEMP\CIStaging\test\. date=09/18/2012
+File_Extract=09/18/2012  01:49 PM    <DIR>          . date2=09/18/2012 time=01:49 ampm=PM size=.
+ext=  _ERROR_=1 _N_=6
+NOTE: Invalid numeric data, '<DIR>' , at line 87 column 175.
+7         09/18/2012  01:49 PM    <DIR>          .. 41
+filename=.. deletefiles=F:\SASTEMP\CIStaging\test\.. date=09/18/2012
+File_Extract=09/18/2012  01:49 PM    <DIR>          .. date2=09/18/2012 time=01:49 ampm=PM size=.
+ext=  _ERROR_=1 _N_=7
+NOTE: Invalid numeric data, '<DIR>' , at line 87 column 175.
+478       08/23/2012  12:16 PM    <DIR>          mmostaylogic 51
+filename=mmostaylogic deletefiles=F:\SASTEMP\CIStaging\test\mmostaylogic date=08/23/2012
+File_Extract=08/23/2012  12:16 PM    <DIR>          mmostaylogic date2=08/23/2012 time=12:16 ampm=PM
+size=. ext=  _ERROR_=1 _N_=478
+NOTE: Invalid argument to function INPUT at line 87 column 75.
+NOTE: Invalid numeric data, 'bytes' , at line 87 column 175.
+540                    531 File(s) 71,699,714,466 bytes 45
+filename=  deletefiles=F:\SASTEMP\CIStaging\test\ date=.
+File_Extract=531 File(s) 71,699,714,466 bytes date2=531 time=File(s) ampm=71,699,714,466 size=.
+ext=  _ERROR_=1 _N_=540
+NOTE: Invalid argument to function INPUT at line 87 column 75.
+NOTE: Invalid numeric data, 'bytes' , at line 87 column 175.
+541                      3 Dir(s)  1,662,441,422,848 bytes free 53
+filename=free deletefiles=F:\SASTEMP\CIStaging\test\free date=.
+File_Extract=3 Dir(s)  1,662,441,422,848 bytes free date2=3 time=Dir(s) ampm=1,662,441,422,848
+size=. ext=  _ERROR_=1 _N_=541
+6                                          The SAS System          14:49 Tuesday, September 18, 2012
+
+NOTE: 541 records were read from the infile INDATA.
+      The minimum record length was 0.
+      The maximum record length was 78.
+NOTE: Missing values were generated as a result of performing an operation on missing values.
+      Each place is given by: (Number of times) at (Line):(Column).
+      10 at 87:213   
+NOTE: Mathematical operations could not be performed at the following places. The results of the 
+      operations have been set to missing values.
+      Each place is given by: (Number of times) at (Line):(Column).
+      5 at 87:75   
+NOTE: The data set WORK.FILE_DIRECTORY has 523 observations and 9 variables.
+NOTE: DATA statement used (Total process time):
+      real time           1.71 seconds
+      cpu time            0.00 seconds
+      
+
+
+NOTE: There were 523 observations read from the data set WORK.FILE_DIRECTORY.
+NOTE: The data set WORK.FILE_DIRECTORY has 0 observations and 8 variables.
+NOTE: DATA statement used (Total process time):
+      real time           0.00 seconds
+      cpu time            0.00 seconds
+      
+
+NOTE: PROCEDURE SQL used (Total process time):
+      real time           0.00 seconds
+      cpu time            0.00 seconds
+      
+
+NOTE: file_directory_cnt =        0
+
+NOTE: SAS Institute Inc., SAS Campus Drive, Cary, NC USA 27513-2414
+NOTE: The SAS System used:
+      real time           3.96 seconds
+      cpu time            0.17 seconds
+      

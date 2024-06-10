@@ -1,0 +1,1 @@
+"C:\Program Files\SAS\SASFoundation\9.2\sas.exe" -sysin \\sas2\ci\programs\EDW\cio_manage_directory_files_sas2.sas            -icon -nosplash -log \\sas2\ci\programs\EDW\cio_manage_directory_files_sas2.log           -print \\sas2\ci\programs\EDW\cio_manage_directory_files_sas2.lst
